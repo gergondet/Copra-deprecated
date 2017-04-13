@@ -64,6 +64,16 @@ std::shared_ptr<ControlConstraint> NewControlConstraint2(const Eigen::MatrixXd& 
     return std::make_shared<ControlConstraint>(E, f, isInequalityConstraint);
 }
 
+std::shared_ptr<MixedConstraint> NewMixedConstraint1(const Eigen::MatrixXd& E, const Eigen::MatrixXd& G, const Eigen::VectorXd& f)
+{
+    return std::make_shared<MixedConstraint>(E, G, f);
+}
+
+std::shared_ptr<MixedConstraint> NewMixedConstraint2(const Eigen::MatrixXd& E, const Eigen::MatrixXd& G, const Eigen::VectorXd& f, bool isInequalityConstraint = true)
+{
+    return std::make_shared<MixedConstraint>(E, G, f, isInequalityConstraint);
+}
+
 std::shared_ptr<TrajectoryBoundConstraint> NewTrajectoryBoundConstraint(const Eigen::VectorXd& lower, const Eigen::VectorXd& upper)
 {
     return std::make_shared<TrajectoryBoundConstraint>(lower, upper);
@@ -85,6 +95,8 @@ BOOST_PYTHON_MODULE(_mpc)
     def("NewTrajectoryConstraint", &NewTrajectoryConstraint2, "Create a new instance of a TrajectoryConstraint shared_ptr");
     def("NewControlConstraint", &NewControlConstraint1, "Create a new instance of a ControlConstraint shared_ptr");
     def("NewControlConstraint", &NewControlConstraint2, "Create a new instance of a ControlConstraint shared_ptr");
+    def("NewMixedConstraint", &NewMixedConstraint1, "Create a new instance of a MixedConstraint shared_ptr");
+    def("NewMixedConstraint", &NewMixedConstraint2, "Create a new instance of a MixedConstraint shared_ptr");
     def("NewTrajectoryBoundConstraint", &NewTrajectoryBoundConstraint, "Create a new instance of a TrajectoryBoundConstraint shared_ptr");
     def("NewControlBoundConstraint", &NewControlBoundConstraint, "Create a new instance of a ControlBoundConstraint shared_ptr");
 
@@ -141,6 +153,11 @@ BOOST_PYTHON_MODULE(_mpc)
     struct ConstraintWrap : Constraint, wrapper<Constraint> {
         using Constraint::Constraint;
 
+        void autoSpan()
+        {
+            this->get_override("autoSpan")();
+        }
+
         void initializeConstraint(const PreviewSystem& ps)
         {
             this->get_override("initializeConstraint")(ps);
@@ -151,7 +168,7 @@ BOOST_PYTHON_MODULE(_mpc)
             this->get_override("update")(ps);
         }
 
-        ConstraintFlag constraintType()
+        ConstraintFlag constraintType() const noexcept
         {
             return this->get_override("constraintType")();
         }
@@ -167,6 +184,11 @@ BOOST_PYTHON_MODULE(_mpc)
     struct EqIneqConstraintWrap : EqIneqConstraint, wrapper<EqIneqConstraint> {
         using EqIneqConstraint::EqIneqConstraint;
 
+        void autoSpan()
+        {
+            this->get_override("autoSpan")();
+        }
+
         void initializeConstraint(const PreviewSystem& ps)
         {
             this->get_override("initializeConstraint")(ps);
@@ -177,7 +199,7 @@ BOOST_PYTHON_MODULE(_mpc)
             this->get_override("update")(ps);
         }
 
-        ConstraintFlag constraintType()
+        ConstraintFlag constraintType() const noexcept
         {
             return this->get_override("constraintType")();
         }
@@ -190,6 +212,7 @@ BOOST_PYTHON_MODULE(_mpc)
     // Delete constructor to enforce call of New<Name_of_constraint> function that return a shared_ptr.
     class_<TrajectoryConstraint, boost::noncopyable, bases<EqIneqConstraint> >("TrajectoryConstraint", "Trajectory constraint. The object if instansiable through a NewTrajectoryConstraint function", no_init);
     class_<ControlConstraint, boost::noncopyable, bases<EqIneqConstraint> >("ControlConstraint", "Control constraint. The object if instansiable through a NewControlConstraint function", no_init);
+    class_<MixedConstraint, boost::noncopyable, bases<EqIneqConstraint> >("MixedConstraint", "Mixed constraint. The object if instansiable through a NewMixedConstraint function", no_init);
     class_<TrajectoryBoundConstraint, boost::noncopyable, bases<EqIneqConstraint> >("TrajectoryBoundConstraint", "Trajectory Bound constraint. The object if instansiable through a NewTrajectoryBoundConstraint function", no_init);
     class_<ControlBoundConstraint, boost::noncopyable, bases<Constraint> >("ControlBoundConstraint", "Control Bound constraint. The object if instansiable through a NewControlBoundConstraint function", no_init)
         .def("lower", &ControlBoundConstraint::lower, return_internal_reference<>())
