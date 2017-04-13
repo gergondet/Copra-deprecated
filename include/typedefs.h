@@ -29,7 +29,7 @@ namespace mpc {
 
 template <typename T1, typename T2>
 struct IsNotIntegral {
-    static const bool value = !(std::is_integral<std::decay_t<T1> >::value || std::is_integral<std::decay_t<T2> >::value);
+    static const bool value = !(std::is_integral<typename std::decay<T1>::type >::value || std::is_integral<typename std::decay<T2>::type >::value);
 };
 
 } // namespace mpc

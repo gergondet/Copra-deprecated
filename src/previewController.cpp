@@ -44,13 +44,17 @@ void MPCTypeFull::Constraints::updateNr()
     nrEqConstr = 0;
     nrIneqConstr = 0;
 
-    auto countConstr = [](auto& spc, int& nreq) {
-        for (auto& sp : spc)
-            nreq += sp->nrConstr();
-    };
+    // auto countConstr = [](auto& spc, int& nreq) {
+    //     for (auto& sp : spc)
+    //         nreq += sp->nrConstr();
+    // };
 
-    countConstr(spEqConstr, nrEqConstr);
-    countConstr(spIneqConstr, nrIneqConstr);
+    for (auto& sp : spEqConstr)
+        nrEqConstr += sp->nrConstr();
+    for (auto& sp : spIneqConstr)
+        nrIneqConstr += sp->nrConstr();
+    // countConstr(spEqConstr, nrEqConstr);
+    // countConstr(spIneqConstr, nrIneqConstr);
 }
 
 void MPCTypeFull::Constraints::clear()
@@ -84,6 +88,7 @@ MPCTypeFull::MPCTypeFull(SolverFlag sFlag)
     , solveTime_()
     , solveAndBuildTime_()
 {
+    std::cout << "uh: " << sol_.get() << std::endl;
 }
 
 MPCTypeFull::MPCTypeFull(const std::shared_ptr<PreviewSystem>& ps, SolverFlag sFlag)
@@ -103,6 +108,7 @@ MPCTypeFull::MPCTypeFull(const std::shared_ptr<PreviewSystem>& ps, SolverFlag sF
     , solveTime_()
     , solveAndBuildTime_()
 {
+    std::cout << "ha: " << sol_.get() << std::endl;
     Wx_.setOnes();
     Wu_.setOnes();
     lb_.setConstant(-std::numeric_limits<double>::max());
@@ -279,23 +285,56 @@ void MPCTypeFull::makeQPForm()
 
 void MPCTypeFull::checkDeleteConstraints()
 {
-    auto checkConstr = [](auto& spc, bool useWarn = false) {
-        for (auto it = spc.begin(); it != spc.end();) {
-            if ((*it).use_count() <= 2) {
-                CONSTRAINT_DELETION_WARN(useWarn, "%s%s%s", "A '", (*it)->name().c_str(),
-                    "' has been destroyed.\nThe constraint has been removed from the controller\n");
-                (void)useWarn;
-                it = spc.erase(it);
-            } else {
-                ++it;
-            }
+    // auto checkConstr = [](auto& spc, bool useWarn = false) {
+    //     for (auto it = spc.begin(); it != spc.end();) {
+    //         if ((*it).use_count() <= 2) {
+    //             CONSTRAINT_DELETION_WARN(useWarn, "%s%s%s", "A '", (*it)->name().c_str(),
+    //                 "' has been destroyed.\nThe constraint has been removed from the controller\n");
+    //             (void)useWarn;
+    //             it = spc.erase(it);
+    //         } else {
+    //             ++it;
+    //         }
+    //     }
+    // };
+    for (auto it = constraints_.spConstr.begin(); it != constraints_.spConstr.end();) {
+        if ((*it).use_count() <= 2) {
+            CONSTRAINT_DELETION_WARN(true, "%s%s%s", "A '", (*it)->name().c_str(),
+                "' has been destroyed.\nThe constraint has been removed from the controller\n");
+            it = constraints_.spConstr.erase(it);
+        } else {
+            ++it;
         }
-    };
+    }
 
-    checkConstr(constraints_.spConstr, true);
-    checkConstr(constraints_.spEqConstr);
-    checkConstr(constraints_.spIneqConstr);
-    checkConstr(constraints_.spBoundConstr);
+    for (auto it = constraints_.spEqConstr.begin(); it != constraints_.spEqConstr.end();) {
+        if ((*it).use_count() <= 2) {
+            it = constraints_.spEqConstr.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    for (auto it = constraints_.spIneqConstr.begin(); it != constraints_.spIneqConstr.end();) {
+        if ((*it).use_count() <= 2) {
+            it = constraints_.spIneqConstr.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    for (auto it = constraints_.spBoundConstr.begin(); it != constraints_.spBoundConstr.end();) {
+        if ((*it).use_count() <= 2) {
+            it = constraints_.spBoundConstr.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    // checkConstr(constraints_.spConstr, true);
+    // checkConstr(constraints_.spEqConstr);
+    // checkConstr(constraints_.spIneqConstr);
+    // checkConstr(constraints_.spBoundConstr);
 }
 
 /*************************************************************************************************

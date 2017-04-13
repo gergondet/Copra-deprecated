@@ -166,7 +166,8 @@ struct EqSystem {
 
 BOOST_FIXTURE_TEST_CASE(OneDofSystemTypeLastForBoundedSystem, BoundedSystem)
 {
-    std::vector<std::pair<std::string, double> > solveTime;
+    using STPair = std::pair<std::string, double>;
+    std::vector<STPair> solveTime;
 
     auto ps = std::make_shared<mpc::PreviewSystem>();
     ps->system(A, B, c, x0, xd, nbStep);
@@ -216,7 +217,7 @@ BOOST_FIXTURE_TEST_CASE(OneDofSystemTypeLastForBoundedSystem, BoundedSystem)
 #endif
 
     std::sort(solveTime.begin(), solveTime.end(),
-        [](const auto& lhs, const auto& rhs) { return lhs.second < rhs.second; });
+        [](const STPair& lhs, const STPair& rhs) { return lhs.second < rhs.second; });
     std::stringstream ss;
     ss << "Solving fasteness: ";
     for (auto sol : solveTime)
@@ -227,7 +228,8 @@ BOOST_FIXTURE_TEST_CASE(OneDofSystemTypeLastForBoundedSystem, BoundedSystem)
 
 BOOST_FIXTURE_TEST_CASE(OneDofSystemTypeFullForBoundedSystem, BoundedSystem)
 {
-    std::vector<std::pair<std::string, double> > solveTime;
+    using STPair = std::pair<std::string, double>;
+    std::vector<STPair> solveTime;
 
     auto ps = std::make_shared<mpc::PreviewSystem>();
     ps->system(A, B, c, x0, xd, nbStep);
@@ -277,7 +279,7 @@ BOOST_FIXTURE_TEST_CASE(OneDofSystemTypeFullForBoundedSystem, BoundedSystem)
 #endif
 
     std::sort(solveTime.begin(), solveTime.end(),
-        [](const auto& lhs, const auto& rhs) { return lhs.second < rhs.second; });
+        [](const STPair& lhs, const STPair& rhs) { return lhs.second < rhs.second; });
     std::stringstream ss;
     ss << "Solving fasteness: ";
     for (auto sol : solveTime)
@@ -287,7 +289,8 @@ BOOST_FIXTURE_TEST_CASE(OneDofSystemTypeFullForBoundedSystem, BoundedSystem)
 
 BOOST_FIXTURE_TEST_CASE(OneDofSystemTypeLastForIneqSystem, IneqSystem)
 {
-    std::vector<std::pair<std::string, double> > solveTime;
+    using STPair = std::pair<std::string, double>;
+    std::vector<STPair> solveTime;
 
     auto ps = std::make_shared<mpc::PreviewSystem>();
     ps->system(A, B, c, x0, xd, nbStep);
@@ -337,7 +340,7 @@ BOOST_FIXTURE_TEST_CASE(OneDofSystemTypeLastForIneqSystem, IneqSystem)
 #endif
 
     std::sort(solveTime.begin(), solveTime.end(),
-        [](const auto& lhs, const auto& rhs) { return lhs.second < rhs.second; });
+        [](const STPair& lhs, const STPair& rhs) { return lhs.second < rhs.second; });
     std::stringstream ss;
     ss << "Solving fasteness: ";
     for (auto sol : solveTime)
@@ -348,7 +351,8 @@ BOOST_FIXTURE_TEST_CASE(OneDofSystemTypeLastForIneqSystem, IneqSystem)
 
 BOOST_FIXTURE_TEST_CASE(OneDofSystemTypeFullForIneqSystem, IneqSystem)
 {
-    std::vector<std::pair<std::string, double> > solveTime;
+    using STPair = std::pair<std::string, double>;
+    std::vector<STPair> solveTime;
 
     auto ps = std::make_shared<mpc::PreviewSystem>();
     ps->system(A, B, c, x0, xd, nbStep);
@@ -398,7 +402,7 @@ BOOST_FIXTURE_TEST_CASE(OneDofSystemTypeFullForIneqSystem, IneqSystem)
 #endif
 
     std::sort(solveTime.begin(), solveTime.end(),
-        [](const auto& lhs, const auto& rhs) { return lhs.second < rhs.second; });
+        [](const STPair& lhs, const STPair& rhs) { return lhs.second < rhs.second; });
     std::stringstream ss;
     ss << "Solving fasteness: ";
     for (auto sol : solveTime)
@@ -408,7 +412,8 @@ BOOST_FIXTURE_TEST_CASE(OneDofSystemTypeFullForIneqSystem, IneqSystem)
 
 BOOST_FIXTURE_TEST_CASE(OneDofSystemTypeLastForEqSystem, EqSystem)
 {
-    std::vector<std::pair<std::string, double> > solveTime;
+    using STPair = std::pair<std::string, double>;
+    std::vector<STPair> solveTime;
 
     auto ps = std::make_shared<mpc::PreviewSystem>();
     ps->system(A, B, c, x0, xd, nbStep);
@@ -455,7 +460,7 @@ BOOST_FIXTURE_TEST_CASE(OneDofSystemTypeLastForEqSystem, EqSystem)
 #endif
 
     std::sort(solveTime.begin(), solveTime.end(),
-        [](const auto& lhs, const auto& rhs) { return lhs.second < rhs.second; });
+        [](const STPair& lhs, const STPair& rhs) { return lhs.second < rhs.second; });
     std::stringstream ss;
     ss << "Solving fasteness: ";
     for (auto sol : solveTime)
@@ -466,7 +471,8 @@ BOOST_FIXTURE_TEST_CASE(OneDofSystemTypeLastForEqSystem, EqSystem)
 
 BOOST_FIXTURE_TEST_CASE(OneDofSystemTypeFullForEqSystem, EqSystem)
 {
-    std::vector<std::pair<std::string, double> > solveTime;
+    using STPair = std::pair<std::string, double>;
+    std::vector<STPair> solveTime;
 
     auto ps = std::make_shared<mpc::PreviewSystem>();
     ps->system(A, B, c, x0, xd, nbStep);
@@ -513,7 +519,7 @@ BOOST_FIXTURE_TEST_CASE(OneDofSystemTypeFullForEqSystem, EqSystem)
 #endif
 
     std::sort(solveTime.begin(), solveTime.end(),
-        [](const auto& lhs, const auto& rhs) { return lhs.second < rhs.second; });
+        [](const STPair& lhs, const STPair& rhs) { return lhs.second < rhs.second; });
     std::stringstream ss;
     ss << "Solving fasteness: ";
     for (auto sol : solveTime)

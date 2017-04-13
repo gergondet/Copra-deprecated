@@ -161,7 +161,7 @@ public:
      * \throw Throw an std::domain_error if E and f have not the same number of rows
      */
     template <typename TMat, typename TVec,
-        typename = std::enable_if_t<IsNotIntegral<TMat, TVec>::value> >
+        typename = typename std::enable_if<IsNotIntegral<TMat, TVec>::value>::type >
     TrajectoryConstraint(TMat&& E, TVec&& f, bool isInequalityConstraint = true)
         : EqIneqConstraint("Trajectory", isInequalityConstraint)
         , E_(std::forward<TMat>(E))
@@ -217,7 +217,7 @@ public:
      * \throw Throw an std::domain_error if G and f have not the same number of rows
      */
     template <typename TMat, typename TVec,
-        typename = std::enable_if_t<IsNotIntegral<TMat, TVec>::value> >
+        typename = typename std::enable_if<IsNotIntegral<TMat, TVec>::value>::type >
     ControlConstraint(TMat&& G, TVec&& f, bool isInequalityConstraint = true)
         : EqIneqConstraint("Control", isInequalityConstraint)
         , G_(std::forward<TMat>(G))
@@ -276,7 +276,7 @@ public:
      * \throw Throw an std::domain_error if E, G and f have not the same number of rows
      */
     template <typename TMat, typename TVec,
-        typename = std::enable_if_t<IsNotIntegral<TMat, TVec>::value> >
+        typename = typename std::enable_if<IsNotIntegral<TMat, TVec>::value>::type >
     MixedConstraint(TMat&& E, TMat&& G, TVec&& f, bool isInequalityConstraint = true)
         : EqIneqConstraint("Control", isInequalityConstraint)
         , E_(std::forward<TMat>(E))
@@ -335,7 +335,7 @@ public:
      * \throw Throw an std::domain_error if lower and upper are not of the same dimension
      */
     template <typename TVec1, typename TVec2,
-        typename = std::enable_if_t<IsNotIntegral<TVec1, TVec2>::value> >
+        typename = typename std::enable_if<IsNotIntegral<TVec1, TVec2>::value>::type >
     TrajectoryBoundConstraint(TVec1&& lower, TVec2&& upper)
         : EqIneqConstraint("Trajectory bound", true)
         , lower_(std::forward<TVec1>(lower))
@@ -397,7 +397,7 @@ public:
      * \throw Throw an std::domain_error if lower and upper are not of the same dimension
      */
     template <typename TVec1, typename TVec2,
-        typename = std::enable_if_t<IsNotIntegral<TVec1, TVec2>::value> >
+        typename = typename std::enable_if<IsNotIntegral<TVec1, TVec2>::value>::type >
     ControlBoundConstraint(TVec1&& lower, TVec2&& upper)
         : Constraint("Control bound constraint")
         , lower_(std::forward<TVec1>(lower))

@@ -120,7 +120,7 @@ public:
      * \throw Throw a std::domain_error is Wx or Wu are badly dimension.
      */
     template <typename TVec1, typename TVec2,
-        typename = std::enable_if_t<IsNotIntegral<TVec1, TVec2>::value> >
+        typename = typename std::enable_if<IsNotIntegral<TVec1, TVec2>::value>::type >
     void weights(TVec1&& Wx, TVec2&& Wu)
     {
         if (Wx.rows() == Wx_.rows())
