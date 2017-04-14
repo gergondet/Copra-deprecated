@@ -120,7 +120,7 @@ public:
      * \throw Throw a std::domain_error is Wx or Wu are badly dimension.
      */
     template <typename TVec1, typename TVec2,
-        typename = std::enable_if<!is_all_arithmetic<TVec1, TVec2>::value> >
+        typename = typename std::enable_if<!is_all_arithmetic<TVec1, TVec2>::value>::type>
     void weights(TVec1&& Wx, TVec2&& Wu)
     {
         if (Wx.rows() == Wx_.rows())
@@ -146,7 +146,7 @@ public:
      * \param wu Weight of the control.
      */
     template <typename T1, typename T2,
-        typename = std::enable_if_t<is_all_arithmetic<T1, T2>::value> >
+        typename = typename std::enable_if<is_all_arithmetic<T1, T2>::value>::type>
     void weights(T1 Wx, T2 Wu)
     {
         Wx_.setConstant(Wx);

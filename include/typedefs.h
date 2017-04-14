@@ -28,7 +28,7 @@ using Index = Eigen::Matrix<int, 1, 1>::Index;
 namespace mpc {
 
 template <typename T1, typename T2 = std::true_type, typename T3 = std::true_type>
-struct is_all_arithmetic : is_all_arithmetic<typename std::is_arithmetic<typename std::decay_t<T1>::type>::type, T2, T3> {
+struct is_all_arithmetic : is_all_arithmetic<typename std::is_arithmetic<typename std::decay<T1>::type>::type, T2, T3> {
 };
 
 template <typename T2, typename T3>
