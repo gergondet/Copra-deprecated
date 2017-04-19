@@ -28,6 +28,8 @@ set(PROJECT_URL "https://github.com/vsamy/preview_controller")
 #SET(CXX_DISABLE_WERROR True)
 set(DOXYGEN_USE_MATHJAX "YES")
 
+project(${PROJECT_NAME} CXX)
+
 # Check compiler version
 # if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 #     if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.0")
@@ -56,7 +58,6 @@ if(NOT DEFINED BUILD_CXX_TESTS)
     set(BUILD_CXX_TESTS OFF)
 endif()
 
-project(${PROJECT_NAME} CXX)
 SETUP_PROJECT()
 
 set(BOOST_REQUIRED 1.48)
