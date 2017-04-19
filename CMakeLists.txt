@@ -1,3 +1,20 @@
+# This file is part of mpc.
+
+# mpc is free software: you can redistribute it and/or
+# modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# mpc is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with mpc.  If not, see
+# <http://www.gnu.org/licenses/>.
+
 # Version minimum
 cmake_minimum_required(VERSION 2.8)
 include(cmake/base.cmake)
@@ -31,15 +48,20 @@ if(lower_case STREQUAL "debug")
     set(CMAKE_CXX_FLAGS_DEBUG "-D_DEBUG")
 endif()
 
+if(NOT DEFINED PYTHON_BINDINGS)
+    set(PYTHON_BINDINGS ON)
+endif()
+
+if(NOT DEFINED BUILD_CXX_TESTS)
+    set(BUILD_CXX_TESTS OFF)
+endif()
+
 project(${PROJECT_NAME} CXX)
 SETUP_PROJECT()
-
-
 
 set(BOOST_REQUIRED 1.48)
 set(BOOST_COMPONENTS system timer)
 set(Eigen_REQUIRED "eigen3 >= 3.2.7") # This eigen version allows move semantics.
-SEARCH_FOR_BOOST()
 SEARCH_FOR_EIGEN()
 
 if(${_Eigen_VERSION} VERSION_LESS 3.3)
@@ -62,8 +84,13 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/${HEADER_DIR}/solverConfig.h
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include/${HEADER_DIR})
 
 add_subdirectory(src)
-add_subdirectory(tests)
-add_subdirectory(binding/python)
+if(${BUILD_CXX_TESTS})
+    add_subdirectory(tests)
+endif()
+
+if(${PYTHON_BINDINGS})
+    add_subdirectory(binding/python)
+endif()
 
 # Add dependency towards the library in the pkg-config file.
 pkg_config_append_libs(${PROJECT_NAME})
