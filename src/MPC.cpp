@@ -16,7 +16,7 @@
 // <http://www.gnu.org/licenses/>.
 
 // header
-#include "previewController.h"
+#include "MPC.h"
 
 // stl
 #include <algorithm>
@@ -26,10 +26,11 @@
 // mpc
 #include "PreviewSystem.h"
 #include "constraints.h"
+#include "costFunctions.h"
 
 namespace mpc {
 
-MPCTypeFull::Constraints::Constraints()
+MPC::Constraints::Constraints()
     : nrEqConstr(0)
     , nrIneqConstr(0)
     , spConstr()
@@ -39,7 +40,7 @@ MPCTypeFull::Constraints::Constraints()
 {
 }
 
-void MPCTypeFull::Constraints::updateNr()
+void MPC::Constraints::updateNr()
 {
     nrEqConstr = 0;
     nrIneqConstr = 0;
@@ -57,7 +58,7 @@ void MPCTypeFull::Constraints::updateNr()
     // countConstr(spIneqConstr, nrIneqConstr);
 }
 
-void MPCTypeFull::Constraints::clear()
+void MPC::Constraints::clear()
 {
     nrEqConstr = 0;
     nrIneqConstr = 0;
@@ -68,10 +69,10 @@ void MPCTypeFull::Constraints::clear()
 }
 
 /*************************************************************************************************
- *                                         MPCTypeFull                                           *
+ *                                             MPC                                               *
  *************************************************************************************************/
 
-MPCTypeFull::MPCTypeFull(SolverFlag sFlag)
+MPC::MPC(SolverFlag sFlag)
     : ps_(nullptr)
     , sol_(solverFactory(sFlag))
     , constraints_()
@@ -83,15 +84,13 @@ MPCTypeFull::MPCTypeFull(SolverFlag sFlag)
     , beq_()
     , lb_()
     , ub_()
-    , Wx_()
-    , Wu_()
     , solveTime_()
     , solveAndBuildTime_()
 {
     std::cout << "uh: " << sol_.get() << std::endl;
 }
 
-MPCTypeFull::MPCTypeFull(const std::shared_ptr<PreviewSystem>& ps, SolverFlag sFlag)
+MPC::MPC(const std::shared_ptr<PreviewSystem>& ps, SolverFlag sFlag)
     : ps_(ps)
     , sol_(solverFactory(sFlag))
     , constraints_()
@@ -103,85 +102,89 @@ MPCTypeFull::MPCTypeFull(const std::shared_ptr<PreviewSystem>& ps, SolverFlag sF
     , beq_()
     , lb_(ps_->fullUDim)
     , ub_(ps_->fullUDim)
-    , Wx_(ps_->fullXDim)
-    , Wu_(ps_->fullUDim)
     , solveTime_()
     , solveAndBuildTime_()
 {
-    std::cout << "ha: " << sol_.get() << std::endl;
-    Wx_.setOnes();
-    Wu_.setOnes();
+    Q_.setIdentity();
+    Q_ *= 1e-6; // Ensure that Q is positive definite if no cost functions are used
+    c_.setZero();
     lb_.setConstant(-std::numeric_limits<double>::max());
     ub_.setConstant(std::numeric_limits<double>::max());
     bineq_.resize(0);
     beq_.resize(0);
 }
 
-void MPCTypeFull::selectQPSolver(SolverFlag flag)
+void MPC::selectQPSolver(SolverFlag flag)
 {
     sol_ = solverFactory(flag);
 }
 
-void MPCTypeFull::initializeController(const std::shared_ptr<PreviewSystem>& ps)
+void MPC::initializeController(const std::shared_ptr<PreviewSystem>& ps)
 {
     ps_ = ps;
     clearConstraintMatrices();
 
     Q_.resize(ps_->fullUDim, ps_->fullUDim);
     c_.resize(ps_->fullUDim);
-    Wx_.resize(ps_->fullXDim);
-    Wu_.resize(ps_->fullUDim);
-    Wx_.setOnes();
-    Wu_.setOnes();
+    Q_.setIdentity();
+    Q_ *= 1e-6; // Ensure that Q is positive definite if no cost functions are used
+    c_.setZero();
 }
 
-bool MPCTypeFull::solve()
+bool MPC::solve()
 {
-    auto sabTime = std::chrono::high_resolution_clock::now();
+    using namespace std::chrono;
+    auto sabTime = high_resolution_clock::now();
 
     updateSystem();
     makeQPForm();
     sol_->SI_problem(ps_->fullUDim, constraints_.nrEqConstr, constraints_.nrIneqConstr);
 
-    auto sTime = std::chrono::high_resolution_clock::now();
+    auto sTime = high_resolution_clock::now();
     bool success = sol_->SI_solve(Q_, c_, Aeq_, beq_, Aineq_, bineq_, lb_, ub_);
-    solveTime_ = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::high_resolution_clock::now() - sTime);
+    solveTime_ = duration_cast<duration<double> >(high_resolution_clock::now() - sTime);
 
-    checkDeleteConstraints();
+    checkDeleteCostsAndConstraints();
     if (!success)
         sol_->SI_inform();
 
-    solveAndBuildTime_ = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::high_resolution_clock::now() - sabTime);
+    solveAndBuildTime_ = duration_cast<duration<double> >(high_resolution_clock::now() - sabTime);
     return success;
 }
 
-const Eigen::VectorXd& MPCTypeFull::control() const noexcept
+const Eigen::VectorXd& MPC::control() const noexcept
 {
     return sol_->SI_result();
 }
 
-Eigen::VectorXd MPCTypeFull::trajectory() const noexcept
+Eigen::VectorXd MPC::trajectory() const noexcept
 {
     return ps_->Phi * ps_->x0 + ps_->Psi * control() + ps_->xi;
 }
 
-double MPCTypeFull::solveTime() const noexcept
+double MPC::solveTime() const noexcept
 {
     return solveTime_.count();
 }
 
-double MPCTypeFull::solveAndBuildTime() const noexcept
+double MPC::solveAndBuildTime() const noexcept
 {
     return solveAndBuildTime_.count();
 }
 
-void MPCTypeFull::addConstraint(const std::shared_ptr<Constraint>& constr)
+void MPC::addCost(const std::shared_ptr<CostFunction>& costFun)
+{
+    costFun->initializeCost(*ps_);
+    spCost_.emplace_back(costFun);
+}
+
+void MPC::addConstraint(const std::shared_ptr<Constraint>& constr)
 {
     constr->initializeConstraint(*ps_);
     addConstraintByType(constr);
 }
 
-void MPCTypeFull::resetConstraints() noexcept
+void MPC::resetConstraints() noexcept
 {
     constraints_.clear();
     clearConstraintMatrices();
@@ -191,7 +194,7 @@ void MPCTypeFull::resetConstraints() noexcept
  *  Protected methods
  */
 
-void MPCTypeFull::addConstraintByType(const std::shared_ptr<Constraint>& constr)
+void MPC::addConstraintByType(const std::shared_ptr<Constraint>& constr)
 {
     switch (constr->constraintType()) {
     case ConstraintFlag::EqualityConstraint: {
@@ -217,7 +220,7 @@ void MPCTypeFull::addConstraintByType(const std::shared_ptr<Constraint>& constr)
     constraints_.spConstr.emplace_back(constr);
 }
 
-void MPCTypeFull::clearConstraintMatrices()
+void MPC::clearConstraintMatrices()
 {
     assert(ps_ != nullptr);
 
@@ -231,10 +234,13 @@ void MPCTypeFull::clearConstraintMatrices()
     ub_.setConstant(std::numeric_limits<double>::max());
 }
 
-void MPCTypeFull::updateSystem()
+void MPC::updateSystem()
 {
-    ps_->updateSystem();
+    // Update the system
+    if (!ps_->isUpdated)
+        ps_->updateSystem();
 
+    // Update the constraints
     constraints_.updateNr();
     Aeq_.resize(constraints_.nrEqConstr, ps_->fullUDim);
     beq_.resize(constraints_.nrEqConstr);
@@ -245,15 +251,20 @@ void MPCTypeFull::updateSystem()
     lb_.setConstant(-std::numeric_limits<double>::max());
     ub_.setConstant(std::numeric_limits<double>::max());
 
-    for (auto& sp : constraints_.spConstr)
+    for (auto& cstr : constraints_.spConstr)
+        cstr->update(*ps_);
+
+    // Update the costs
+    for (auto& sp : spCost_)
         sp->update(*ps_);
 }
 
-void MPCTypeFull::makeQPForm()
+void MPC::makeQPForm()
 {
-    Q_ = Wu_.asDiagonal();
-    Q_.noalias() += ps_->Psi.transpose() * Wx_.asDiagonal() * ps_->Psi;
-    c_.noalias() = ps_->Psi.transpose() * Wx_.asDiagonal() * (ps_->Phi * ps_->x0 - ps_->xd + ps_->xi);
+    for (auto& cost : spCost_) {
+        Q_ += cost->Q();
+        c_ += cost->c();
+    }
 
     int nrLines = 0;
     // Get Equality constraints
@@ -280,7 +291,7 @@ void MPCTypeFull::makeQPForm()
     }
 }
 
-void MPCTypeFull::checkDeleteConstraints()
+void MPC::checkDeleteCostsAndConstraints()
 {
     // auto checkConstr = [](auto& spc, bool useWarn = false) {
     //     for (auto it = spc.begin(); it != spc.end();) {
@@ -304,12 +315,12 @@ void MPCTypeFull::checkDeleteConstraints()
         }
     }
 
-    for (auto it = constraints_.spEqConstr.begin(); it != constraints_.spEqConstr.end();) {
-        if ((*it).use_count() <= 2) {
-            it = constraints_.spEqConstr.erase(it);
-        } else {
-            ++it;
-        }
+    check(constraints_.spConstr, true);
+    check(constraints_.spEqConstr);
+    check(constraints_.spIneqConstr);
+    check(constraints_.spBoundConstr);
+    check(constraints_.spBoundConstr);
+    check(spCost_, true, 1);
     }
 
     for (auto it = constraints_.spIneqConstr.begin(); it != constraints_.spIneqConstr.end();) {
@@ -334,76 +345,4 @@ void MPCTypeFull::checkDeleteConstraints()
     // checkConstr(constraints_.spBoundConstr);
 }
 
-/*************************************************************************************************
- *                                         MPCTypeLast                                           *
- *************************************************************************************************/
-
-MPCTypeLast::MPCTypeLast(SolverFlag sFlag)
-    : MPCTypeFull::MPCTypeFull(sFlag)
-{
-}
-
-MPCTypeLast::MPCTypeLast(const std::shared_ptr<PreviewSystem>& ps, SolverFlag sFlag)
-    : MPCTypeFull::MPCTypeFull(ps, sFlag)
-{
-    Wx_.resize(ps_->xDim);
-    Wx_.setOnes();
-}
-
-void MPCTypeLast::initializeController(const std::shared_ptr<PreviewSystem>& ps)
-{
-    ps_ = ps;
-    Q_.resize(ps_->fullUDim, ps_->fullUDim);
-    Aineq_.resize(0, ps_->fullUDim);
-    Aeq_.resize(0, ps_->fullUDim);
-    c_.resize(ps_->fullUDim);
-    bineq_.resize(0);
-    beq_.resize(0);
-    lb_.resize(ps_->fullUDim);
-    ub_.resize(ps_->fullUDim);
-    lb_.setConstant(-std::numeric_limits<double>::max());
-    ub_.setConstant(std::numeric_limits<double>::max());
-    Wx_.resize(ps_->xDim);
-    Wu_.resize(ps_->fullUDim);
-    Wx_.setOnes();
-    Wu_.setOnes();
-}
-
-/*
- *  Protected methods
- */
-
-void MPCTypeLast::makeQPForm()
-{
-    auto xDim = ps_->xDim;
-    const Eigen::MatrixXd& psi = ps_->Psi.bottomRows(xDim);
-    Q_ = Wu_.asDiagonal();
-    Q_.noalias() += psi.transpose() * Wx_.asDiagonal() * psi;
-    c_.noalias() = psi.transpose() * Wx_.asDiagonal() * (ps_->Phi.bottomRows(xDim) * ps_->x0 - ps_->xd.tail(xDim) + ps_->xi.tail(xDim));
-
-    int nrLines = 0;
-    // Get Equality constraints
-    for (auto& cstr : constraints_.spEqConstr) {
-        Aeq_.block(nrLines, 0, cstr->nrConstr(), ps_->fullUDim) = cstr->A();
-        beq_.segment(nrLines, cstr->nrConstr()) = cstr->b();
-        nrLines += cstr->nrConstr();
-    }
-
-    // Get Inequality constraints
-    nrLines = 0;
-    for (auto& cstr : constraints_.spIneqConstr) {
-        Aineq_.block(nrLines, 0, cstr->nrConstr(), ps_->fullUDim) = cstr->A();
-        bineq_.segment(nrLines, cstr->nrConstr()) = cstr->b();
-        nrLines += cstr->nrConstr();
-    }
-
-    // Get Bound constraints
-    nrLines = 0;
-    for (auto& cstr : constraints_.spBoundConstr) {
-        lb_.segment(nrLines, cstr->nrConstr()) = cstr->lower();
-        ub_.segment(nrLines, cstr->nrConstr()) = cstr->upper();
-        nrLines += cstr->nrConstr();
-    }
-}
-
-} // namespace pc
+} // namespace mpc

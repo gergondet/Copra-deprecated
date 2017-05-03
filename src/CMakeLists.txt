@@ -16,21 +16,25 @@
 # <http://www.gnu.org/licenses/>.
 
 set(SOURCES
+    AutoSpan.cpp
+    costFunctions.cpp
     PreviewSystem.cpp
     QuadProgSolver.cpp
     SolverInterface.cpp
     constraints.cpp
     debugUtils.cpp
-    previewController.cpp
+    MPC.cpp
     solverUtils.cpp)
 
 set(HEADERS 
+    ../include/AutoSpan.h
+    ../include/costFunctions.h
     ../include/PreviewSystem.h 
     ../include/QuadProgSolver.h 
     ../include/SolverInterface.h 
     ../include/constraints.h
     ../include/debugUtils.h
-    ../include/previewController.h 
+    ../include/MPC.h 
     ../include/solverUtils.h 
     ../include/typedefs.h)
 
