@@ -45,7 +45,7 @@ public:
      * \param Weights of to set.
      * \throw Throw a std::domain_error if weights is badly dimension.
      */
-    template <typename TVec, typename = std::enable_if_t<!is_all_arithmetic<TVec>::value> >
+    template <typename TVec, typename = typename std::enable_if<!is_all_arithmetic<TVec>::value>::type >
     void weights(TVec&& weights)
     {
         if (weights.rows() == weights_.rows() || weights.rows() % weights_.rows() == 0) {
@@ -63,7 +63,7 @@ public:
      * Set the weights of the system. All variables are set to the same weight.
      * \param weight Weight to apply.
      */
-    template <typename T, typename = std::enable_if_t<is_all_arithmetic<T>::value> >
+    template <typename T, typename = typename std::enable_if<is_all_arithmetic<T>::value>::type >
     void weights(T weight)
     {
         weights_.setConstant(weight);
@@ -95,7 +95,7 @@ protected:
 class TrajectoryCost final : public CostFunction {
 public:
     template <typename TMat, typename TVec,
-        typename = std::enable_if_t<!is_all_arithmetic<TMat, TVec>::value> >
+        typename = typename std::enable_if<!is_all_arithmetic<TMat, TVec>::value>::type >
     TrajectoryCost(TMat&& M, TVec&& p)
         : CostFunction("TrajectoryCost")
         , M_(std::forward<TMat>(M))
@@ -116,7 +116,7 @@ private:
 class TargetCost final : public CostFunction {
 public:
     template <typename TMat, typename TVec,
-        typename = std::enable_if_t<!is_all_arithmetic<TMat, TVec>::value> >
+        typename = typename std::enable_if<!is_all_arithmetic<TMat, TVec>::value>::type >
     TargetCost(TMat&& M, TVec&& p)
         : CostFunction("TargetCost")
         , M_(std::forward<TMat>(M))
@@ -136,7 +136,7 @@ private:
 class ControlCost final : public CostFunction {
 public:
     template <typename TMat, typename TVec,
-        typename = std::enable_if_t<!is_all_arithmetic<TMat, TVec>::value> >
+        typename = typename std::enable_if<!is_all_arithmetic<TMat, TVec>::value>::type >
     ControlCost(TMat&& N, TVec&& p)
         : CostFunction("ControlCost")
         , N_(std::forward<TMat>(N))
@@ -157,7 +157,7 @@ private:
 class MixedCost final : public CostFunction {
 public:
     template <typename TMat1, typename TMat2, typename TVec,
-        typename = std::enable_if_t<!is_all_arithmetic<TMat1, TMat2, TVec>::value> >
+        typename = typename std::enable_if<!is_all_arithmetic<TMat1, TMat2, TVec>::value>::type >
     MixedCost(TMat1&& M, TMat2&& N, TVec&& p)
         : CostFunction("MixedCost")
         , M_(std::forward<TMat1>(M))

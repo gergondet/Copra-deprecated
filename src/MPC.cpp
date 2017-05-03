@@ -45,17 +45,10 @@ void MPC::Constraints::updateNr()
     nrEqConstr = 0;
     nrIneqConstr = 0;
 
-    // auto countConstr = [](auto& spc, int& nreq) {
-    //     for (auto& sp : spc)
-    //         nreq += sp->nrConstr();
-    // };
-
     for (auto& sp : spEqConstr)
         nrEqConstr += sp->nrConstr();
     for (auto& sp : spIneqConstr)
         nrIneqConstr += sp->nrConstr();
-    // countConstr(spEqConstr, nrEqConstr);
-    // countConstr(spIneqConstr, nrIneqConstr);
 }
 
 void MPC::Constraints::clear()
@@ -87,7 +80,6 @@ MPC::MPC(SolverFlag sFlag)
     , solveTime_()
     , solveAndBuildTime_()
 {
-    std::cout << "uh: " << sol_.get() << std::endl;
 }
 
 MPC::MPC(const std::shared_ptr<PreviewSystem>& ps, SolverFlag sFlag)
@@ -293,18 +285,6 @@ void MPC::makeQPForm()
 
 void MPC::checkDeleteCostsAndConstraints()
 {
-    // auto checkConstr = [](auto& spc, bool useWarn = false) {
-    //     for (auto it = spc.begin(); it != spc.end();) {
-    //         if ((*it).use_count() <= 2) {
-    //             CONSTRAINT_DELETION_WARN(useWarn, "%s%s%s", "A '", (*it)->name().c_str(),
-    //                 "' has been destroyed.\nThe constraint has been removed from the controller\n");
-    //             (void)useWarn;
-    //             it = spc.erase(it);
-    //         } else {
-    //             ++it;
-    //         }
-    //     }
-    // };
     for (auto it = constraints_.spConstr.begin(); it != constraints_.spConstr.end();) {
         if ((*it).use_count() <= 2) {
             CONSTRAINT_DELETION_WARN(true, "%s%s%s", "A '", (*it)->name().c_str(),
@@ -313,14 +293,6 @@ void MPC::checkDeleteCostsAndConstraints()
         } else {
             ++it;
         }
-    }
-
-    check(constraints_.spConstr, true);
-    check(constraints_.spEqConstr);
-    check(constraints_.spIneqConstr);
-    check(constraints_.spBoundConstr);
-    check(constraints_.spBoundConstr);
-    check(spCost_, true, 1);
     }
 
     for (auto it = constraints_.spIneqConstr.begin(); it != constraints_.spIneqConstr.end();) {
@@ -339,10 +311,15 @@ void MPC::checkDeleteCostsAndConstraints()
         }
     }
 
-    // checkConstr(constraints_.spConstr, true);
-    // checkConstr(constraints_.spEqConstr);
-    // checkConstr(constraints_.spIneqConstr);
-    // checkConstr(constraints_.spBoundConstr);
+    for (auto it = spCost_.begin(); it != spCost_.end();) {
+        if ((*it).use_count() <= 1) {
+            it = spCost_.erase(it);
+            CONSTRAINT_DELETION_WARN(true, "%s%s%s", "A '", (*it)->name().c_str(),
+                "' has been destroyed.\nThe constraint has been removed from the controller\n");
+        } else {
+            ++it;
+        }
+    }
 }
 
 } // namespace mpc
