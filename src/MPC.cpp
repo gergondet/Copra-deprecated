@@ -314,7 +314,7 @@ void MPC::checkDeleteCostsAndConstraints()
         if ((*it).use_count() <= 1) {
             it = spCost_.erase(it);
             CONSTRAINT_DELETION_WARN(true, "%s%s%s", "A '", (*it)->name().c_str(),
-                "' has been destroyed.\nThe constraint has been removed from the controller\n");
+                "' has been destroyed.\nIt has been removed from the controller\n");
         } else {
             ++it;
         }
