@@ -97,18 +97,18 @@ MPC::MPC(const std::shared_ptr<PreviewSystem>& ps, SolverFlag sFlag)
     , solveTime_()
     , solveAndBuildTime_()
 {
-    Q_.setIdentity();
-    Q_ *= 1e-6; // Ensure that Q is positive definite if no cost functions are used
-    c_.setZero();
     lb_.setConstant(-std::numeric_limits<double>::max());
     ub_.setConstant(std::numeric_limits<double>::max());
-    bineq_.resize(0);
-    beq_.resize(0);
 }
 
 void MPC::selectQPSolver(SolverFlag flag)
 {
     sol_ = solverFactory(flag);
+}
+
+void MPC::useSolver(sts::unique_ptr<SolverInterface>&& solver)
+{
+    solver_ = std::move(solver);
 }
 
 void MPC::initializeController(const std::shared_ptr<PreviewSystem>& ps)
@@ -118,9 +118,6 @@ void MPC::initializeController(const std::shared_ptr<PreviewSystem>& ps)
 
     Q_.resize(ps_->fullUDim, ps_->fullUDim);
     c_.resize(ps_->fullUDim);
-    Q_.setIdentity();
-    Q_ *= 1e-6; // Ensure that Q is positive definite if no cost functions are used
-    c_.setZero();
 }
 
 bool MPC::solve()
@@ -194,6 +191,7 @@ void MPC::addConstraintByType(const std::shared_ptr<Constraint>& constr)
         // DownCasting to std::shared_ptr<EqIneqConstraint>
         // This is a safe operation since we know that the object is a derived class of a EqIneqConstraint
         constraints_.spEqConstr.emplace_back(std::static_pointer_cast<EqIneqConstraint>(constr));
+    ub_.setConstant(std::numeric_limits<double>::max());
     } break;
     case ConstraintFlag::InequalityConstraint: {
         constraints_.nrIneqConstr += constr->nrConstr();
@@ -228,6 +226,11 @@ void MPC::clearConstraintMatrices()
 
 void MPC::updateSystem()
 {
+    // Reset the QP variables
+    Q_.setIdentity();
+    Q_ *= 1e-6; // Ensure that Q is positive definite if no cost functions are used
+    c_.setZero();
+
     // Update the system
     if (!ps_->isUpdated)
         ps_->updateSystem();
@@ -238,10 +241,6 @@ void MPC::updateSystem()
     beq_.resize(constraints_.nrEqConstr);
     Aineq_.resize(constraints_.nrIneqConstr, ps_->fullUDim);
     bineq_.resize(constraints_.nrIneqConstr);
-    lb_.resize(ps_->fullUDim);
-    ub_.resize(ps_->fullUDim);
-    lb_.setConstant(-std::numeric_limits<double>::max());
-    ub_.setConstant(std::numeric_limits<double>::max());
 
     for (auto& cstr : constraints_.spConstr)
         cstr->update(*ps_);
@@ -288,7 +287,7 @@ void MPC::checkDeleteCostsAndConstraints()
     for (auto it = constraints_.spConstr.begin(); it != constraints_.spConstr.end();) {
         if ((*it).use_count() <= 2) {
             CONSTRAINT_DELETION_WARN(true, "%s%s%s", "A '", (*it)->name().c_str(),
-                "' has been destroyed.\nThe constraint has been removed from the controller\n");
+                    "' has been destroyed.\nIt has been removed from the controller\n");
             it = constraints_.spConstr.erase(it);
         } else {
             ++it;
